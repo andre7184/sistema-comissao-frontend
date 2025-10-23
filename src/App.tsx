@@ -1,23 +1,26 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useContext } from 'react';
-import type { ReactNode } from 'react'; // <-- IMPORTANTE: Importe o ReactNode
-import Modulos from './pages/Modulos';
+import { useContext, type JSX } from 'react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import ModulosPage from './users/superadmin/pages/ModulosPage';
+import EmpresasPage from './users/superadmin/pages/EmpresasPage';
 import { AuthProvider, AuthContext } from './contexts/AuthContext';
 
-// 
-// AQUI ESTÁ A CORREÇÃO
-// 
-// Troque 'JSX.Element' por 'ReactNode'
-function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { token } = useContext(AuthContext);
-  if (!token) {
-    // Redireciona para o login se não houver token
+function ProtectedRoute({
+  children,
+  allowedRoles,
+}: {
+  children: JSX.Element;
+  allowedRoles?: string[];
+}) {
+  const { token, role } = useContext(AuthContext);
+
+  if (!token) return <Navigate to="/" replace />;
+  if (allowedRoles && !allowedRoles.includes(role ?? '')) {
     return <Navigate to="/" replace />;
   }
-  // 'children' agora é do tipo ReactNode e funcionará corretamente
-  return <>{children}</>; 
+
+  return children;
 }
 
 function App() {
@@ -25,23 +28,39 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* Login público */}
           <Route path="/" element={<Login />} />
+
+          {/* Dashboard comum (pode ser adaptado por tipo de usuário) */}
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard children={undefined} />
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Rotas exclusivas do Super Admin */}
+          <Route
+            path="/empresas"
+            element={
+              <ProtectedRoute allowedRoles={['ROLE_SUPER_ADMIN']}>
+                <EmpresasPage />
               </ProtectedRoute>
             }
           />
           <Route
             path="/modulos"
             element={
-              <ProtectedRoute>
-                <Modulos />
+              <ProtectedRoute allowedRoles={['ROLE_SUPER_ADMIN']}>
+                <ModulosPage />
               </ProtectedRoute>
             }
           />
+
+          {/* Aqui você pode adicionar outras rotas do Super Admin */}
+          {/* <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['ROLE_SUPER_ADMIN']}><UsuariosPage /></ProtectedRoute>} /> */}
         </Routes>
       </BrowserRouter>
     </AuthProvider>

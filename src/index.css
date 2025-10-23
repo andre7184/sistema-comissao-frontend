@@ -1,3 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Seu arquivo CSS principal (ex: index.css) */
+@import "tailwindcss";
+
+/* Outros estilos aqui */

@@ -1,7 +1,16 @@
-import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { useContext, type ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const { role, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
@@ -9,10 +18,29 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <h2 className="text-xl font-bold mb-6">Sistema de Comissões</h2>
         <nav className="flex flex-col gap-2">
           <Link to="/dashboard" className="hover:text-blue-600">🏠 Dashboard</Link>
-          <Link to="/modulos" className="hover:text-blue-600">📦 Módulos</Link>
-          <Link to="/empresas" className="hover:text-blue-600">🏢 Empresas</Link>
-          <Link to="/vendedores" className="hover:text-blue-600">👥 Vendedores</Link>
-          <Link to="/vendas" className="hover:text-blue-600">💰 Vendas</Link>
+
+          {/* Links exclusivos do Super Admin */}
+          {role === 'ROLE_SUPER_ADMIN' && (
+            <>
+              <Link to="/modulos" className="hover:text-blue-600">📦 Módulos</Link>
+              <Link to="/empresas" className="hover:text-blue-600">🏢 Empresas</Link>
+            </>
+          )}
+
+          {/* Links para Admin */}
+          {role === 'ROLE_ADMIN' && (
+            <>
+              <Link to="/vendedores" className="hover:text-blue-600">👥 Vendedores</Link>
+              <Link to="/vendas" className="hover:text-blue-600">💰 Vendas</Link>
+            </>
+          )}
+
+          {/* Links para Vendedor */}
+          {role === 'ROLE_VENDEDOR' && (
+            <>
+              <Link to="/vendas" className="hover:text-blue-600">💰 Minhas Vendas</Link>
+            </>
+          )}
         </nav>
       </aside>
 
@@ -21,7 +49,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         {/* Header */}
         <header className="bg-white shadow p-4 flex justify-between items-center">
           <h1 className="text-lg font-semibold">Painel</h1>
-          <button className="text-sm text-red-500 hover:underline">Sair</button>
+          <button onClick={handleLogout} className="text-sm text-red-500 hover:underline">
+            Sair
+          </button>
         </header>
 
         {/* Page content */}
