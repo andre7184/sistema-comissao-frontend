@@ -18,7 +18,7 @@ export default function Modulos() {
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { permissoes } = useContext(AuthContext); // Pegar permissões
+  useContext(AuthContext); // Pegar permissões
 
   // Verificar se o admin tem o módulo de "Gestão de Módulos" (se houver um)
   // Por enquanto, vamos assumir que se ele é admin, pode ver seus módulos.

@@ -2,19 +2,18 @@ import type { ReactNode } from 'react';
 import { createContext, useState, useEffect, useMemo } from 'react';
 import { jwtDecode } from 'jwt-decode';
 
-// Interface para o payload do JWT, assumindo que o backend inclui o 'role'
+// Interface para o payload do JWT
 interface DecodedToken {
-  sub: string; // subject (geralmente o ID do usuário)
+  sub: string;
   role: 'ROLE_SUPER_ADMIN' | 'ROLE_ADMIN' | 'ROLE_VENDEDOR' | string;
-  exp: number; // expiration time
-  iat: number; // issued at
-  // Outras claims customizadas do seu token
+  exp: number; // Expiration Time (em segundos desde a época Unix)
+  iat: number;
 }
 
 interface AuthContextType {
   token: string | null;
-  role: string | null; // <-- Papel do usuário
-  permissoes: string[] | null; // <-- Permissões de Módulo
+  role: string | null;
+  permissoes: string[] | null;
   login: (token: string, permissoes: string[]) => void;
   logout: () => void;
 }
@@ -38,23 +37,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<string | null>(null);
   const [permissoes, setPermissoes] = useState<string[] | null>(getStoredPermissoes());
 
+  // Garante que a função logout esteja estável para o useEffect
+  const logout = useMemo(() => () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('permissoes');
+    setToken(null);
+    setRole(null);
+    setPermissoes(null);
+  }, []);
+
   useEffect(() => {
     if (token) {
       try {
-        // Usa a interface tipada para o token decodificado
         const decoded = jwtDecode<DecodedToken>(token);
-        // O papel (Role) vem do payload do JWT
+        
+        // 1. OBTÉM O TEMPO ATUAL (em segundos)
+        const currentTime = Date.now() / 1000; 
+
+        // 2. VERIFICA SE O TOKEN EXPIROU
+        if (decoded.exp < currentTime) {
+            console.warn('Token JWT expirado no frontend. Deslogando usuário.');
+            // Força o logout, limpando o token e o localStorage
+            logout(); 
+            return; // Interrompe a execução
+        }
+        
+        // Se o token não expirou, define o role
         setRole(decoded.role || null);
+        
       } catch (e) {
-        console.error('Token inválido ou expirado:', e);
-        // Se o token for inválido, deslogar para remover o token inválido
+        console.error('Token JWT inválido ou corrompido:', e);
         logout();
       }
     } else {
         // Garante que o role seja limpo se o token não existir
         setRole(null);
     }
-  }, [token]);
+    
+    // Adicione 'logout' como dependência
+  }, [token, logout]); 
 
   const login = (newToken: string, newPermissoes: string[]) => {
     localStorage.setItem('token', newToken);
@@ -63,22 +84,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setPermissoes(newPermissoes);
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('permissoes');
-    setToken(null);
-    setRole(null);
-    setPermissoes(null);
-  };
+  // O logout agora é definido via useMemo acima
 
-  // Usa useMemo para evitar recriação desnecessária do objeto 'value'
   const contextValue = useMemo(() => ({
     token,
     role,
     permissoes,
     login,
     logout,
-  }), [token, role, permissoes]);
+  }), [token, role, permissoes, login, logout]); // Inclua todas as dependências
 
   return (
     <AuthContext.Provider value={contextValue}>
